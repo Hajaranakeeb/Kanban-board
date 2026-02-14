@@ -6,7 +6,7 @@ interface ColumnData {
   id: string;
   title: string;
   tasks: Task[];
-  color?: string; // optional in data
+  color?: string;
 }
 
 interface BoardProps {
@@ -14,6 +14,12 @@ interface BoardProps {
 }
 
 const Board: React.FC<BoardProps> = ({ columns }) => {
+  // Dummy handlers to satisfy required props
+  const handleAddCard = () => {};
+  const handleDeleteCard = () => {};
+  const handleUpdateCard = () => {};
+  const handleUpdateColumn = () => {};
+
   return (
     <div className="flex space-x-4">
       {columns.map((column) => (
@@ -22,7 +28,11 @@ const Board: React.FC<BoardProps> = ({ columns }) => {
           id={column.id}
           title={column.title}
           tasks={column.tasks}
-          color={column.color || "#F59E0B"} // default if not provided
+          color={column.color || "#F59E0B"}
+          onAddCard={handleAddCard}
+          onDeleteCard={handleDeleteCard}
+          onUpdateCard={handleUpdateCard}
+          onUpdateColumn={handleUpdateColumn}
         />
       ))}
     </div>
