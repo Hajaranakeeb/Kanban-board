@@ -1,7 +1,7 @@
 export type Task = {
   id: string;
   content: string;
-  column: string;
+  column: string; // matches your original Column.tsx
 };
 
 export type ColumnType = {
