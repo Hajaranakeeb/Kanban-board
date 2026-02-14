@@ -35,20 +35,8 @@ export type ColumnType = {
 export default function BoardPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [email, setEmail] = useState<string | null>(null);
 
-  // ===== AUTH CHECK =====
-  useEffect(() => {
-    const signedIn = localStorage.getItem("signedIn");
-    const user = localStorage.getItem("user");
-
-    if (!signedIn || !user) {
-      router.replace("/auth");
-    } else {
-      setMounted(true);
-    }
-  }, [router]);
-
-  // ===== DEFAULT DATA =====
   const defaultColumns: ColumnType[] = [
     { id: "todo", title: "Stuck", color: "#E2445C" },
     { id: "progress", title: "Not started", color: "#579BFC" },
@@ -66,37 +54,40 @@ export default function BoardPage() {
     { id: "6", content: "Coffee Cupcake", column: "done", color: "#f97316" },
   ];
 
-  const [columns, setColumns] = useState<ColumnType[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("kanban-board");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return parsed.columns || defaultColumns;
-      }
-    }
-    return defaultColumns;
-  });
-
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("kanban-board");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return parsed.tasks || defaultTasks;
-      }
-    }
-    return defaultTasks;
-  });
+  const [columns, setColumns] = useState<ColumnType[]>(defaultColumns);
+  const [tasks, setTasks] = useState<Task[]>(defaultTasks);
 
   const sensors = useSensors(useSensor(PointerSensor));
 
-  // ===== AUTO SAVE =====
   useEffect(() => {
-    if (!mounted) return;
-    localStorage.setItem("kanban-board", JSON.stringify({ columns, tasks }));
-  }, [columns, tasks, mounted]);
+    const signedInEmail = localStorage.getItem("signedIn");
+    if (!signedInEmail) {
+      router.replace("/auth");
+      return;
+    }
+    setEmail(signedInEmail);
 
-  if (!mounted) return null; // Only render after auth check
+    // load board data for this email
+    const savedBoard = JSON.parse(
+      localStorage.getItem(`kanban-board-${signedInEmail}`) || "null"
+    );
+    if (savedBoard) {
+      setColumns(savedBoard.columns || defaultColumns);
+      setTasks(savedBoard.tasks || defaultTasks);
+    }
+
+    setMounted(true);
+  }, [router]);
+
+  useEffect(() => {
+    if (!mounted || !email) return;
+    localStorage.setItem(
+      `kanban-board-${email}`,
+      JSON.stringify({ columns, tasks })
+    );
+  }, [columns, tasks, mounted, email]);
+
+  if (!mounted) return null;
 
   /* ================= DRAG ================= */
   function handleDragEnd(event: DragEndEvent) {
@@ -106,7 +97,8 @@ export default function BoardPage() {
     if (columns.some((c) => c.id === active.id)) {
       const oldIndex = columns.findIndex((c) => c.id === active.id);
       const newIndex = columns.findIndex((c) => c.id === over.id);
-      if (oldIndex !== newIndex) setColumns(arrayMove(columns, oldIndex, newIndex));
+      if (oldIndex !== newIndex)
+        setColumns(arrayMove(columns, oldIndex, newIndex));
       return;
     }
 
@@ -135,7 +127,12 @@ export default function BoardPage() {
 
   /* ================= CARDS ================= */
   function handleAddCard(columnId: string) {
-    const newTask: Task = { id: Date.now().toString(), content: "", column: columnId, color: "#ffffff" };
+    const newTask: Task = {
+      id: Date.now().toString(),
+      content: "",
+      column: columnId,
+      color: "#ffffff",
+    };
     setTasks((prev) => [...prev, newTask]);
   }
 
@@ -143,7 +140,12 @@ export default function BoardPage() {
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
   }
 
-  function handleUpdateCard(columnId: string, taskId: string, content: string, color?: string) {
+  function handleUpdateCard(
+    columnId: string,
+    taskId: string,
+    content: string,
+    color?: string
+  ) {
     setTasks((prev) =>
       prev.map((t) =>
         t.id === taskId ? { ...t, content, color: color ?? t.color } : t
@@ -156,18 +158,32 @@ export default function BoardPage() {
     const newId = Date.now().toString();
     const newTitle = prompt("Enter column name");
     if (!newTitle) return;
-    const newColor = prompt("Pick column color (hex)", "#888888") || "#888888";
-    setColumns((prev) => [...prev, { id: newId, title: newTitle, color: newColor }]);
+    const newColor =
+      prompt("Pick column color (hex)", "#888888") || "#888888";
+
+    const newColumn: ColumnType = {
+      id: newId,
+      title: newTitle,
+      color: newColor,
+    };
+
+    setColumns((prev) => [...prev, newColumn]);
   }
 
   function handleDeleteLastColumn() {
     if (columns.length === 0) return;
     const lastColumn = columns[columns.length - 1];
     setColumns((prev) => prev.slice(0, -1));
-    setTasks((prev) => prev.filter((t) => t.column !== lastColumn.id));
+    setTasks((prev) =>
+      prev.filter((t) => t.column !== lastColumn.id)
+    );
   }
 
-  function handleUpdateColumn(columnId: string, newTitle: string, newColor: string) {
+  function handleUpdateColumn(
+    columnId: string,
+    newTitle: string,
+    newColor: string
+  ) {
     setColumns((prev) =>
       prev.map((c) =>
         c.id === columnId ? { ...c, title: newTitle, color: newColor } : c

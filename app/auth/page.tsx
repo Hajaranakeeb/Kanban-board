@@ -8,50 +8,32 @@ export default function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-
-    const storedUserRaw = localStorage.getItem("user");
-    const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null;
+    const emailKey = `user-${email.trim().toLowerCase()}`;
+    const savedUser = JSON.parse(localStorage.getItem(emailKey) || "null");
 
     if (isSignUp) {
-      // Signing up
-      if (!email || !password) {
-        setError("Please enter email and password.");
+      if (savedUser) {
+        setMessage("Account already exists. Please sign in.");
         return;
       }
-
-      if (storedUser && storedUser.email === email) {
-        setError("Email already exists. Please sign in.");
-        return;
-      }
-
       // Save new user
-      localStorage.setItem("user", JSON.stringify({ email, password }));
-      localStorage.setItem("signedIn", "true");
+      localStorage.setItem(emailKey, JSON.stringify({ email, password }));
+      localStorage.setItem("signedIn", email); // track signed-in email
       router.push("/board");
     } else {
-      // Signing in
-      if (!storedUser) {
-        setError("No account found. Please sign up first.");
+      if (!savedUser) {
+        setMessage("No account found for this email.");
         return;
       }
-
-      if (storedUser.email !== email) {
-        setError("No account found with this email.");
+      if (savedUser.password !== password) {
+        setMessage("Wrong password.");
         return;
       }
-
-      if (storedUser.password !== password) {
-        setError("Wrong password.");
-        return;
-      }
-
-      // Correct credentials
-      localStorage.setItem("signedIn", "true");
+      localStorage.setItem("signedIn", email); // track signed-in email
       router.push("/board");
     }
   };
@@ -63,32 +45,28 @@ export default function AuthPage() {
           {isSignUp ? "Sign Up" : "Sign In"}
         </h2>
 
+        {message && (
+          <p className="text-red-500 text-sm mb-2 text-center">{message}</p>
+        )}
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
-  type="email"
-  placeholder="Email"
-  value={email}
-  onChange={(e) => {
-    setEmail(e.target.value);
-    setError(null); // clear error when user types
-  }}
-  className="p-2 rounded bg-[#3b3f5c] outline-none"
-  required
-/>
+            type="email"
+            placeholder="Email"
+            className="p-2 rounded bg-[#3b3f5c] outline-none"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
 
-<input
-  type="password"
-  placeholder="Password"
-  value={password}
-  onChange={(e) => {
-    setPassword(e.target.value);
-    setError(null); // clear error when user types
-  }}
-  className="p-2 rounded bg-[#3b3f5c] outline-none"
-  required
-/>
-
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          <input
+            type="password"
+            placeholder="Password"
+            className="p-2 rounded bg-[#3b3f5c] outline-none"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
           <button
             type="submit"
@@ -98,12 +76,11 @@ export default function AuthPage() {
           </button>
         </form>
 
-        {/* Toggle link */}
         <p
           className="mt-4 text-center text-sm cursor-pointer hover:underline"
           onClick={() => {
             setIsSignUp(!isSignUp);
-            setError(null);
+            setMessage("");
           }}
         >
           {isSignUp
