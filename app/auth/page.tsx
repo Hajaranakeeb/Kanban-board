@@ -9,19 +9,22 @@ export default function AuthPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    router.push("/"); // after sign in go back to board
+
+    // mark user as signed in
+    localStorage.setItem("signedIn", "true");
+
+    // go to board
+    router.push("/");
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-[#1f2235] text-white">
       <div className="bg-[#2a2d45] p-8 rounded-xl w-96">
-
         <h2 className="text-2xl mb-6 text-center">
           {isSignUp ? "Sign Up" : "Sign In"}
         </h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-
           <input
             type="email"
             placeholder="Email"
@@ -42,7 +45,6 @@ export default function AuthPage() {
           >
             {isSignUp ? "Create Account" : "Sign In"}
           </button>
-
         </form>
 
         <p
@@ -53,7 +55,6 @@ export default function AuthPage() {
             ? "Already have an account? Sign In"
             : "Don't have an account? Sign Up"}
         </p>
-
       </div>
     </div>
   );

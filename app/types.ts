@@ -1,7 +1,9 @@
+// shared types for boards
 export type Task = {
   id: string;
   content: string;
-  column: string; // matches your original Column.tsx
+  column: string;
+  color?: string;
 };
 
 export type ColumnType = {

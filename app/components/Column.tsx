@@ -7,7 +7,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
-import { Task } from "../page";
+import { Task } from "../types"; // <- use the shared types.ts
 
 interface ColumnProps {
   id: string;
