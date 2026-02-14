@@ -32,12 +32,23 @@ export type ColumnType = {
   color: string;
 };
 
-export default function Page() {
+export default function BoardPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
-  /* ================= DEFAULT DATA ================= */
+  // ===== AUTH CHECK =====
+  useEffect(() => {
+    const signedIn = localStorage.getItem("signedIn");
+    const user = localStorage.getItem("user");
 
+    if (!signedIn || !user) {
+      router.replace("/auth");
+    } else {
+      setMounted(true);
+    }
+  }, [router]);
+
+  // ===== DEFAULT DATA =====
   const defaultColumns: ColumnType[] = [
     { id: "todo", title: "Stuck", color: "#E2445C" },
     { id: "progress", title: "Not started", color: "#579BFC" },
@@ -54,8 +65,6 @@ export default function Page() {
     { id: "5", content: "Caramel Cupcake", column: "done", color: "#ef4444" },
     { id: "6", content: "Coffee Cupcake", column: "done", color: "#f97316" },
   ];
-
-  /* ================= STATE ================= */
 
   const [columns, setColumns] = useState<ColumnType[]>(() => {
     if (typeof window !== "undefined") {
@@ -81,29 +90,15 @@ export default function Page() {
 
   const sensors = useSensors(useSensor(PointerSensor));
 
-  /* ================= AUTH CHECK ================= */
-
-  useEffect(() => {
-    const auth = localStorage.getItem("signedIn");
-    if (!auth) {
-      router.replace("/");
-    } else {
-      setMounted(true);
-    }
-  }, [router]);
-
-  /* ================= AUTO SAVE ================= */
-
+  // ===== AUTO SAVE =====
   useEffect(() => {
     if (!mounted) return;
-    const boardData = { columns, tasks };
-    localStorage.setItem("kanban-board", JSON.stringify(boardData));
+    localStorage.setItem("kanban-board", JSON.stringify({ columns, tasks }));
   }, [columns, tasks, mounted]);
 
-  if (!mounted) return null;
+  if (!mounted) return null; // Only render after auth check
 
   /* ================= DRAG ================= */
-
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over) return;
@@ -111,8 +106,7 @@ export default function Page() {
     if (columns.some((c) => c.id === active.id)) {
       const oldIndex = columns.findIndex((c) => c.id === active.id);
       const newIndex = columns.findIndex((c) => c.id === over.id);
-      if (oldIndex !== newIndex)
-        setColumns(arrayMove(columns, oldIndex, newIndex));
+      if (oldIndex !== newIndex) setColumns(arrayMove(columns, oldIndex, newIndex));
       return;
     }
 
@@ -131,24 +125,17 @@ export default function Page() {
     }
 
     const overColumn = columns.find((c) => c.id === over.id);
-    if (overColumn) {
+    if (overColumn)
       setTasks((prev) =>
         prev.map((t) =>
           t.id === active.id ? { ...t, column: overColumn.id } : t
         )
       );
-    }
   }
 
-  /* ================= CARD FUNCTIONS ================= */
-
+  /* ================= CARDS ================= */
   function handleAddCard(columnId: string) {
-    const newTask: Task = {
-      id: Date.now().toString(),
-      content: "",
-      column: columnId,
-      color: "#ffffff",
-    };
+    const newTask: Task = { id: Date.now().toString(), content: "", column: columnId, color: "#ffffff" };
     setTasks((prev) => [...prev, newTask]);
   }
 
@@ -156,12 +143,7 @@ export default function Page() {
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
   }
 
-  function handleUpdateCard(
-    columnId: string,
-    taskId: string,
-    content: string,
-    color?: string
-  ) {
+  function handleUpdateCard(columnId: string, taskId: string, content: string, color?: string) {
     setTasks((prev) =>
       prev.map((t) =>
         t.id === taskId ? { ...t, content, color: color ?? t.color } : t
@@ -169,41 +151,23 @@ export default function Page() {
     );
   }
 
-  /* ================= COLUMN FUNCTIONS ================= */
-
+  /* ================= COLUMNS ================= */
   function handleAddColumn() {
     const newId = Date.now().toString();
     const newTitle = prompt("Enter column name");
     if (!newTitle) return;
-
-    const newColor =
-      prompt("Pick column color (hex)", "#888888") || "#888888";
-
-    const newColumn: ColumnType = {
-      id: newId,
-      title: newTitle,
-      color: newColor,
-    };
-
-    setColumns((prev) => [...prev, newColumn]);
+    const newColor = prompt("Pick column color (hex)", "#888888") || "#888888";
+    setColumns((prev) => [...prev, { id: newId, title: newTitle, color: newColor }]);
   }
 
   function handleDeleteLastColumn() {
     if (columns.length === 0) return;
-
     const lastColumn = columns[columns.length - 1];
-
     setColumns((prev) => prev.slice(0, -1));
-    setTasks((prev) =>
-      prev.filter((t) => t.column !== lastColumn.id)
-    );
+    setTasks((prev) => prev.filter((t) => t.column !== lastColumn.id));
   }
 
-  function handleUpdateColumn(
-    columnId: string,
-    newTitle: string,
-    newColor: string
-  ) {
+  function handleUpdateColumn(columnId: string, newTitle: string, newColor: string) {
     setColumns((prev) =>
       prev.map((c) =>
         c.id === columnId ? { ...c, title: newTitle, color: newColor } : c
@@ -213,11 +177,10 @@ export default function Page() {
 
   function handleSignOut() {
     localStorage.removeItem("signedIn");
-    router.push("/");
+    router.push("/auth");
   }
 
   /* ================= RENDER ================= */
-
   return (
     <div className="bg-gray-900 text-gray-100 min-h-screen">
       <header className="h-16 bg-gray-800 flex items-center justify-between px-8 border-b border-gray-700 shadow-sm">
