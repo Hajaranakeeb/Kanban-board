@@ -7,7 +7,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
-import { Task } from "../types"; // <- use the shared types.ts
+import { Task } from "../types";
 
 interface ColumnProps {
   id: string;
@@ -20,8 +20,7 @@ interface ColumnProps {
   onUpdateColumn: (columnId: string, newTitle: string, newColor: string) => void;
 }
 
-/* ================= CARD ================= */
-function SortableItem({
+function TaskItem({
   task,
   columnId,
   onUpdateCard,
@@ -33,25 +32,25 @@ function SortableItem({
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: task.id });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
   const [editing, setEditing] = useState(task.content === "");
   const [value, setValue] = useState(task.content);
 
   function handleBlur() {
     setEditing(false);
-    onUpdateCard(columnId, task.id, value, "#000000"); // force black background for card
+    onUpdateCard(columnId, task.id, value, task.color);
   }
 
   return (
     <div
       ref={setNodeRef}
-      style={{ ...style, backgroundColor: "#000000", color: "white" }}
       {...attributes}
       {...listeners}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        backgroundColor: "#000000",
+        color: "white",
+      }}
       className="p-3 rounded-md shadow cursor-pointer"
     >
       {editing ? (
@@ -63,13 +62,14 @@ function SortableItem({
           className="w-full p-2 rounded resize-none bg-black text-white"
         />
       ) : (
-        <p onClick={() => setEditing(true)}>{task.content || "New Card"}</p>
+        <p onClick={() => setEditing(true)}>
+          {task.content || "New Card"}
+        </p>
       )}
     </div>
   );
 }
 
-/* ================= COLUMN ================= */
 export default function Column({
   id,
   title,
@@ -81,11 +81,10 @@ export default function Column({
   onUpdateColumn,
 }: ColumnProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
-  const style = { transform: CSS.Transform.toString(transform), transition };
-
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
   const [colorValue, setColorValue] = useState(color);
+  const [showDeleteMenu, setShowDeleteMenu] = useState(false);
 
   function handleTitleBlur() {
     setEditingTitle(false);
@@ -100,10 +99,15 @@ export default function Column({
   return (
     <div
       ref={setNodeRef}
-      style={{ ...style, backgroundColor: colorValue, color: "white" }}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        backgroundColor: colorValue,
+        color: "white",
+      }}
       className="w-64 rounded-lg flex flex-col"
     >
-      {/* HEADER */}
+      {/* COLUMN HEADER */}
       <div className="p-4 cursor-grab" {...attributes} {...listeners}>
         {editingTitle ? (
           <>
@@ -128,27 +132,45 @@ export default function Column({
         )}
       </div>
 
-      {/* TASKS */}
+      {/* CARDS */}
       <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-3 p-4">
           {tasks.map((task) => (
-            <SortableItem key={task.id} task={task} columnId={id} onUpdateCard={onUpdateCard} />
+            <TaskItem
+              key={task.id}
+              task={task}
+              columnId={id}
+              onUpdateCard={onUpdateCard}
+            />
           ))}
 
-          {/* DELETE LAST CARD BUTTON */}
+          {/* DELETE CARD MENU */}
           {tasks.length > 0 && (
-            <div
-              onClick={() => {
-                const lastTask = tasks[tasks.length - 1];
-                onDeleteCard(id, lastTask.id);
-              }}
-              className="text-white/80 hover:text-white cursor-pointer text-sm bg-gray-700 px-3 py-2 rounded text-center"
-            >
-              Delete Last Card
+            <div className="flex flex-col gap-1">
+              <button
+                className="text-white/80 hover:text-white cursor-pointer text-sm bg-gray-700 px-3 py-2 rounded text-center"
+                onClick={() => setShowDeleteMenu(prev => !prev)}
+              >
+                Delete Card
+              </button>
+
+              {showDeleteMenu &&
+                tasks.map((task) => (
+                  <button
+                    key={task.id}
+                    className="text-white/80 hover:text-white cursor-pointer text-sm bg-gray-700 px-2 py-1 rounded text-left"
+                    onClick={() => {
+                      onDeleteCard(id, task.id);
+                      setShowDeleteMenu(false);
+                    }}
+                  >
+                    {task.content || "New Card"}
+                  </button>
+                ))}
             </div>
           )}
 
-          {/* ADD NEW CARD */}
+          {/* ADD NEW CARD BUTTON */}
           <div
             onClick={() => onAddCard(id)}
             className="text-white/80 hover:text-white cursor-pointer text-sm bg-gray-700 px-3 py-2 rounded text-center mt-1"

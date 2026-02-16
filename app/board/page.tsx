@@ -38,20 +38,9 @@ export default function BoardPage() {
   const [email, setEmail] = useState<string | null>(null);
 
   const defaultColumns: ColumnType[] = [
-    { id: "todo", title: "Stuck", color: "#E2445C" },
-    { id: "progress", title: "Not started", color: "#579BFC" },
-    { id: "working", title: "Working on it", color: "#FDAB3D" },
-    { id: "done", title: "Done", color: "#00C875" },
-    { id: "test", title: "Test", color: "#A25DDC" },
   ];
 
   const defaultTasks: Task[] = [
-    { id: "1", content: "Vanilla Cupcake", column: "todo", color: "#f59e0b" },
-    { id: "2", content: "Caramel Cupcake", column: "progress", color: "#10b981" },
-    { id: "3", content: "Chocolate Cupcake", column: "working", color: "#3b82f6" },
-    { id: "4", content: "Velvet Cupcake", column: "working", color: "#8b5cf6" },
-    { id: "5", content: "Caramel Cupcake", column: "done", color: "#ef4444" },
-    { id: "6", content: "Coffee Cupcake", column: "done", color: "#f97316" },
   ];
 
   const [columns, setColumns] = useState<ColumnType[]>(defaultColumns);
@@ -59,6 +48,7 @@ export default function BoardPage() {
 
   const sensors = useSensors(useSensor(PointerSensor));
 
+  /* ================= LOAD/SAVE BOARD ================= */
   useEffect(() => {
     const signedInEmail = localStorage.getItem("signedIn");
     if (!signedInEmail) {
@@ -67,7 +57,6 @@ export default function BoardPage() {
     }
     setEmail(signedInEmail);
 
-    // load board data for this email
     const savedBoard = JSON.parse(
       localStorage.getItem(`kanban-board-${signedInEmail}`) || "null"
     );
@@ -97,8 +86,7 @@ export default function BoardPage() {
     if (columns.some((c) => c.id === active.id)) {
       const oldIndex = columns.findIndex((c) => c.id === active.id);
       const newIndex = columns.findIndex((c) => c.id === over.id);
-      if (oldIndex !== newIndex)
-        setColumns(arrayMove(columns, oldIndex, newIndex));
+      if (oldIndex !== newIndex) setColumns(arrayMove(columns, oldIndex, newIndex));
       return;
     }
 
@@ -170,13 +158,9 @@ export default function BoardPage() {
     setColumns((prev) => [...prev, newColumn]);
   }
 
-  function handleDeleteLastColumn() {
-    if (columns.length === 0) return;
-    const lastColumn = columns[columns.length - 1];
-    setColumns((prev) => prev.slice(0, -1));
-    setTasks((prev) =>
-      prev.filter((t) => t.column !== lastColumn.id)
-    );
+  function handleDeleteColumn(columnId: string) {
+    setColumns((prev) => prev.filter((c) => c.id !== columnId));
+    setTasks((prev) => prev.filter((t) => t.column !== columnId));
   }
 
   function handleUpdateColumn(
@@ -238,12 +222,20 @@ export default function BoardPage() {
             >
               + Add Column
             </button>
-            <button
-              onClick={handleDeleteLastColumn}
-              className="bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded"
+            <select
+              onChange={(e) => handleDeleteColumn(e.target.value)}
+              className="bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded w-full"
+              defaultValue=""
             >
-              - Delete Last Column
-            </button>
+              <option value="" disabled>
+                - Delete Column
+              </option>
+              {columns.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
           </div>
         </aside>
 

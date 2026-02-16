@@ -2,7 +2,7 @@
 export type Task = {
   id: string;
   content: string;
-  column: string;
+  column: string; // REQUIRED
   color?: string;
 };
 
