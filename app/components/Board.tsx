@@ -42,7 +42,7 @@ export default function BoardPage() {
 
   const sensors = useSensors(useSensor(PointerSensor));
 
-  // Load board for the signed-in user
+  // Load the user's board
   useEffect(() => {
     const signedInEmail = localStorage.getItem("signedIn");
     if (!signedInEmail) {
@@ -51,19 +51,17 @@ export default function BoardPage() {
     }
     setEmail(signedInEmail);
 
-    const savedBoardRaw = localStorage.getItem(`kanban-board-${signedInEmail}`);
-    if (savedBoardRaw) {
-      const savedBoard = JSON.parse(savedBoardRaw);
-      setColumns(savedBoard.columns || []);
-      setTasks(savedBoard.tasks || []);
+    const savedBoard = JSON.parse(
+      localStorage.getItem(`kanban-board-${signedInEmail}`) || "null"
+    );
+
+    if (savedBoard) {
+      setColumns(savedBoard.columns);
+      setTasks(savedBoard.tasks);
     } else {
-      // New user = empty board
+      // New account → start fresh
       setColumns([]);
       setTasks([]);
-      localStorage.setItem(
-        `kanban-board-${signedInEmail}`,
-        JSON.stringify({ columns: [], tasks: [] })
-      );
     }
 
     setMounted(true);
@@ -225,8 +223,7 @@ export default function BoardPage() {
             >
               + Add Column
             </button>
-
-            {/* Delete Column Dropdown */}
+            {/* Delete Column dropdown */}
             <select
               onChange={(e) => handleDeleteColumn(e.target.value)}
               className="bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded w-full"

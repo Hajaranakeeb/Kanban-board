@@ -12,28 +12,46 @@ export default function AuthPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const emailKey = `user-${email.trim().toLowerCase()}`;
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailKey = `user-${normalizedEmail}`;
     const savedUser = JSON.parse(localStorage.getItem(emailKey) || "null");
 
     if (isSignUp) {
+      // ===== SIGN UP =====
       if (savedUser) {
         setMessage("Account already exists. Please sign in.");
         return;
       }
+
       // Save new user
-      localStorage.setItem(emailKey, JSON.stringify({ email, password }));
-      localStorage.setItem("signedIn", email); // track signed-in email
+      localStorage.setItem(
+        emailKey,
+        JSON.stringify({ email: normalizedEmail, password })
+      );
+
+      // Create EMPTY board for this user
+      localStorage.setItem(
+        `kanban-board-${normalizedEmail}`,
+        JSON.stringify({ columns: [], tasks: [] })
+      );
+
+      localStorage.setItem("signedIn", normalizedEmail);
       router.push("/board");
+
     } else {
+      // ===== SIGN IN =====
       if (!savedUser) {
         setMessage("No account found for this email.");
         return;
       }
+
       if (savedUser.password !== password) {
         setMessage("Wrong password.");
         return;
       }
-      localStorage.setItem("signedIn", email); // track signed-in email
+
+      localStorage.setItem("signedIn", normalizedEmail);
       router.push("/board");
     }
   };
