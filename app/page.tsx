@@ -13,14 +13,18 @@ export default function AuthPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent crash if Supabase isn't initialized
+    if (!supabase) {
+      alert("Supabase not initialized! Check environment variables.");
+      return;
+    }
+
     setLoading(true);
 
     if (isSignUp) {
       // SIGN UP
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+      const { error } = await supabase.auth.signUp({ email, password });
 
       if (error) {
         alert(error.message);
@@ -30,10 +34,7 @@ export default function AuthPage() {
       }
     } else {
       // SIGN IN
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
         alert(error.message);
