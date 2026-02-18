@@ -10,45 +10,60 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const backendURL = "http://localhost:4000"; // your backend URL
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     const normalizedEmail = email.trim().toLowerCase();
-    const emailKey = `user-${normalizedEmail}`;
-    const savedUser = JSON.parse(localStorage.getItem(emailKey) || "null");
 
-    if (isSignUp) {
-      if (savedUser) {
-        setMessage("Account already exists. Please sign in.");
-        return;
+    try {
+      if (isSignUp) {
+        // ===== SIGN UP =====
+        const res = await fetch(`${backendURL}/users`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: normalizedEmail, password }),
+        });
+
+        const data = await res.json();
+
+        if (data.exists) {
+          setMessage("Account already exists. Please sign in.");
+          return;
+        }
+
+        // Initialize empty board for this user
+        await fetch(`${backendURL}/board`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user: normalizedEmail, columns: [], tasks: [] }),
+        });
+
+        localStorage.setItem("signedIn", normalizedEmail);
+        router.push("/board");
+
+      } else {
+        // ===== SIGN IN =====
+        const res = await fetch(`${backendURL}/users?email=${normalizedEmail}`);
+        const data = await res.json();
+        const user = data.user;
+
+        if (!user) {
+          setMessage("No account found for this email.");
+          return;
+        }
+
+        if (user.password !== password) {
+          setMessage("Wrong password.");
+          return;
+        }
+
+        localStorage.setItem("signedIn", normalizedEmail);
+        router.push("/board");
       }
-
-      localStorage.setItem(
-        emailKey,
-        JSON.stringify({ email: normalizedEmail, password })
-      );
-
-      localStorage.setItem(
-        `kanban-board-${normalizedEmail}`,
-        JSON.stringify({ columns: [], tasks: [] })
-      );
-
-      localStorage.setItem("signedIn", normalizedEmail);
-      router.push("/board");
-
-    } else {
-      if (!savedUser) {
-        setMessage("No account found for this email.");
-        return;
-      }
-
-      if (savedUser.password !== password) {
-        setMessage("Wrong password.");
-        return;
-      }
-
-      localStorage.setItem("signedIn", normalizedEmail);
-      router.push("/board");
+    } catch (err) {
+      console.error(err);
+      setMessage("Server error. Try again.");
     }
   };
 

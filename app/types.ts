@@ -1,13 +1,14 @@
-// shared types for boards
 export type Task = {
   id: string;
   content: string;
-  column: string; // REQUIRED
+  column: string;
   color?: string;
+  user?: string; // <-- add this
 };
 
 export type ColumnType = {
   id: string;
   title: string;
   color: string;
+  user?: string; // <-- add this
 };

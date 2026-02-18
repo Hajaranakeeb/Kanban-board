@@ -24,10 +24,12 @@ function TaskItem({
   task,
   columnId,
   onUpdateCard,
+  onDeleteCard,
 }: {
   task: Task;
   columnId: string;
   onUpdateCard: (columnId: string, taskId: string, content: string, color?: string) => void;
+  onDeleteCard: (columnId: string, taskId: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: task.id });
@@ -35,10 +37,10 @@ function TaskItem({
   const [editing, setEditing] = useState(task.content === "");
   const [value, setValue] = useState(task.content);
 
-  function handleBlur() {
+  const handleBlur = () => {
     setEditing(false);
     onUpdateCard(columnId, task.id, value, task.color);
-  }
+  };
 
   return (
     <div
@@ -62,9 +64,7 @@ function TaskItem({
           className="w-full p-2 rounded resize-none bg-black text-white"
         />
       ) : (
-        <p onClick={() => setEditing(true)}>
-          {task.content || "New Card"}
-        </p>
+        <p onClick={() => setEditing(true)}>{task.content || "New Card"}</p>
       )}
     </div>
   );
@@ -86,15 +86,15 @@ export default function Column({
   const [colorValue, setColorValue] = useState(color);
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
 
-  function handleTitleBlur() {
+  const handleTitleBlur = () => {
     setEditingTitle(false);
     onUpdateColumn(id, titleValue, colorValue);
-  }
+  };
 
-  function handleColorChange(newColor: string) {
+  const handleColorChange = (newColor: string) => {
     setColorValue(newColor);
     onUpdateColumn(id, titleValue, newColor);
-  }
+  };
 
   return (
     <div
@@ -141,6 +141,7 @@ export default function Column({
               task={task}
               columnId={id}
               onUpdateCard={onUpdateCard}
+              onDeleteCard={onDeleteCard}
             />
           ))}
 
@@ -149,7 +150,7 @@ export default function Column({
             <div className="flex flex-col gap-1">
               <button
                 className="text-white/80 hover:text-white cursor-pointer text-sm bg-gray-700 px-3 py-2 rounded text-center"
-                onClick={() => setShowDeleteMenu(prev => !prev)}
+                onClick={() => setShowDeleteMenu((prev) => !prev)}
               >
                 Delete Card
               </button>
