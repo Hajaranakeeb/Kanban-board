@@ -18,19 +18,16 @@ export default function AuthPage() {
     const savedUser = JSON.parse(localStorage.getItem(emailKey) || "null");
 
     if (isSignUp) {
-      // ===== SIGN UP =====
       if (savedUser) {
         setMessage("Account already exists. Please sign in.");
         return;
       }
 
-      // Save new user
       localStorage.setItem(
         emailKey,
         JSON.stringify({ email: normalizedEmail, password })
       );
 
-      // Create EMPTY board for this user
       localStorage.setItem(
         `kanban-board-${normalizedEmail}`,
         JSON.stringify({ columns: [], tasks: [] })
@@ -40,7 +37,6 @@ export default function AuthPage() {
       router.push("/board");
 
     } else {
-      // ===== SIGN IN =====
       if (!savedUser) {
         setMessage("No account found for this email.");
         return;

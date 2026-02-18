@@ -2,48 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+
 
 export default function AuthPage() {
   const router = useRouter();
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Prevent crash if Supabase isn't initialized
-    if (!supabase) {
-      alert("Supabase not initialized! Check environment variables.");
-      return;
-    }
+    localStorage.setItem("signedIn", "true");
 
-    setLoading(true);
-
-    if (isSignUp) {
-      // SIGN UP
-      const { error } = await supabase.auth.signUp({ email, password });
-
-      if (error) {
-        alert(error.message);
-      } else {
-        alert("Account created! You can now sign in.");
-        setIsSignUp(false);
-      }
-    } else {
-      // SIGN IN
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (error) {
-        alert(error.message);
-      } else {
-        router.push("/board");
-      }
-    }
-
-    setLoading(false);
+    router.push("/board");
   };
 
   return (
@@ -58,8 +28,6 @@ export default function AuthPage() {
             type="email"
             placeholder="Email"
             className="p-2 rounded bg-[#3b3f5c] outline-none"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
             required
           />
 
@@ -67,17 +35,14 @@ export default function AuthPage() {
             type="password"
             placeholder="Password"
             className="p-2 rounded bg-[#3b3f5c] outline-none"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
             required
           />
 
           <button
             type="submit"
             className="bg-[#4c5072] hover:bg-[#5d6290] p-2 rounded-lg"
-            disabled={loading}
           >
-            {loading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
+            {isSignUp ? "Create Account" : "Sign In"}
           </button>
         </form>
 

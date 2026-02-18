@@ -37,18 +37,12 @@ export default function BoardPage() {
   const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
 
-  const defaultColumns: ColumnType[] = [
-  ];
-
-  const defaultTasks: Task[] = [
-  ];
-
-  const [columns, setColumns] = useState<ColumnType[]>(defaultColumns);
-  const [tasks, setTasks] = useState<Task[]>(defaultTasks);
+  const [columns, setColumns] = useState<ColumnType[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   const sensors = useSensors(useSensor(PointerSensor));
 
-  /* ================= LOAD/SAVE BOARD ================= */
+  // ===== Load from localStorage
   useEffect(() => {
     const signedInEmail = localStorage.getItem("signedIn");
     if (!signedInEmail) {
@@ -61,13 +55,14 @@ export default function BoardPage() {
       localStorage.getItem(`kanban-board-${signedInEmail}`) || "null"
     );
     if (savedBoard) {
-      setColumns(savedBoard.columns || defaultColumns);
-      setTasks(savedBoard.tasks || defaultTasks);
+      setColumns(savedBoard.columns || []);
+      setTasks(savedBoard.tasks || []);
     }
 
     setMounted(true);
   }, [router]);
 
+  // ===== Save to localStorage
   useEffect(() => {
     if (!mounted || !email) return;
     localStorage.setItem(
@@ -78,7 +73,7 @@ export default function BoardPage() {
 
   if (!mounted) return null;
 
-  /* ================= DRAG ================= */
+  // ===== Drag & Drop
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over) return;
@@ -113,7 +108,7 @@ export default function BoardPage() {
       );
   }
 
-  /* ================= CARDS ================= */
+  // ===== Cards
   function handleAddCard(columnId: string) {
     const newTask: Task = {
       id: Date.now().toString(),
@@ -141,13 +136,12 @@ export default function BoardPage() {
     );
   }
 
-  /* ================= COLUMNS ================= */
+  // ===== Columns
   function handleAddColumn() {
     const newId = Date.now().toString();
     const newTitle = prompt("Enter column name");
     if (!newTitle) return;
-    const newColor =
-      prompt("Pick column color (hex)", "#888888") || "#888888";
+    const newColor = prompt("Pick column color (hex)", "#888888") || "#888888";
 
     const newColumn: ColumnType = {
       id: newId,
@@ -163,11 +157,7 @@ export default function BoardPage() {
     setTasks((prev) => prev.filter((t) => t.column !== columnId));
   }
 
-  function handleUpdateColumn(
-    columnId: string,
-    newTitle: string,
-    newColor: string
-  ) {
+  function handleUpdateColumn(columnId: string, newTitle: string, newColor: string) {
     setColumns((prev) =>
       prev.map((c) =>
         c.id === columnId ? { ...c, title: newTitle, color: newColor } : c
@@ -180,7 +170,7 @@ export default function BoardPage() {
     router.push("/auth");
   }
 
-  /* ================= RENDER ================= */
+  // ===== Render
   return (
     <div className="bg-gray-900 text-gray-100 min-h-screen">
       <header className="h-16 bg-gray-800 flex items-center justify-between px-8 border-b border-gray-700 shadow-sm">
