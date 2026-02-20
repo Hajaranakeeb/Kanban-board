@@ -14,7 +14,6 @@ import {
   SortableContext,
   arrayMove,
   horizontalListSortingStrategy,
-  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 
 import Column from "../components/Column";
@@ -58,7 +57,7 @@ export default function BoardPage() {
   };
 
   // ===== Drag & Drop
-  const handleDragEnd = (event: DragEndEvent) => {
+  function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over) return;
 
@@ -80,7 +79,6 @@ export default function BoardPage() {
 
     const overTask = tasks.find((t) => t.id === over.id);
     if (overTask) {
-      // Move task within same column or to a different task's column
       const updatedTasks = tasks.map((t) =>
         t.id === active.id ? { ...t, column: overTask.column } : t
       );
@@ -92,7 +90,6 @@ export default function BoardPage() {
       return;
     }
 
-    // Dragged over empty column
     const overColumn = columns.find((c) => c.id === over.id);
     if (overColumn) {
       const newTasks = tasks.map((t) =>
@@ -101,9 +98,9 @@ export default function BoardPage() {
       setTasks(newTasks);
       saveBoard(columns, newTasks);
     }
-  };
+  }
 
-  // ===== Card handlers
+  // ===== Cards
   const handleAddCard = (columnId: string) => {
     if (!email) return;
     const newTask: Task = {
@@ -132,7 +129,7 @@ export default function BoardPage() {
     saveBoard(columns, updatedTasks);
   };
 
-  // ===== Column handlers
+  // ===== Columns
   const handleAddColumn = () => {
     if (!email) return;
     const newTitle = prompt("Enter column name");
@@ -160,7 +157,6 @@ export default function BoardPage() {
     saveBoard(updatedColumns, tasks);
   };
 
-  // ===== Sign out
   const handleSignOut = () => {
     localStorage.removeItem("signedIn");
     router.push("/auth");
@@ -184,56 +180,49 @@ export default function BoardPage() {
 
       <div className="flex">
         <aside className="w-64 bg-gray-800 min-h-screen p-6 border-r border-gray-700 space-y-6">
+          {/* Example Dropdowns */}
           <div>
             <p className="text-white text-sm mb-2">Kanban Column</p>
             <select className="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600">
               <option>Delivered</option>
               <option>In Progress</option>
               {columns.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.title}
-                </option>
+                <option key={c.id} value={c.id}>{c.title}</option>
               ))}
             </select>
           </div>
 
-          <div className="flex flex-col gap-2 mt-4">
-            <button
-              onClick={handleAddColumn}
-              className="bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded"
-            >
+          <div>
+            <p className="text-white text-sm mb-2">Assignee Column</p>
+            <select className="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600">
+              <option>Person</option>
+              <option>Another Person</option>
+            </select>
+          </div>
+
+          <div>
+            <button onClick={handleAddColumn} className="bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded w-full">
               + Add Column
             </button>
             <select
               onChange={(e) => {
-                handleDeleteColumn(e.target.value);
+                if (e.target.value) handleDeleteColumn(e.target.value);
                 e.target.value = "";
               }}
-              className="bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded w-full"
+              className="bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded w-full mt-2"
               defaultValue=""
             >
-              <option value="" disabled>
-                - Delete Column
-              </option>
+              <option value="" disabled>- Delete Column</option>
               {columns.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.title}
-                </option>
+                <option key={c.id} value={c.id}>{c.title}</option>
               ))}
             </select>
           </div>
         </aside>
 
         <main className="flex-1 p-6 overflow-x-auto h-[calc(100vh-64px)]">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={columns.map((c) => c.id)}
-              strategy={horizontalListSortingStrategy}
-            >
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={columns.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
               <div className="flex gap-6 items-start">
                 {columns.map((column) => (
                   <Column
@@ -243,7 +232,7 @@ export default function BoardPage() {
                     color={column.color}
                     tasks={tasks.filter((t) => t.column === column.id)}
                     onAddCard={handleAddCard}
-                    onDeleteCard={handleDeleteCard} // ✅ signature fixed
+                    onDeleteCard={handleDeleteCard}
                     onUpdateCard={handleUpdateCard}
                     onUpdateColumn={handleUpdateColumn}
                   />
