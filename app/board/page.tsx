@@ -1,247 +1,77 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useNhostClient, useUserId } from "@nhost/nextjs";
 import { useRouter } from "next/navigation";
-import {
-  DndContext,
-  DragEndEvent,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  horizontalListSortingStrategy,
-} from "@dnd-kit/sortable";
-
 import Column from "../components/Column";
-import { Task, ColumnType } from "../types";
-import "../globals.css";
 
 export default function BoardPage() {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  const [email, setEmail] = useState<string | null>(null);
-  const [columns, setColumns] = useState<ColumnType[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const userId = useUserId();
+  const nhost = useNhostClient();
+  const [boards, setBoards] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const sensors = useSensors(useSensor(PointerSensor));
-
-  // ===== Load board from localStorage
   useEffect(() => {
-    const signedInEmail = localStorage.getItem("signedIn");
-    if (!signedInEmail) {
-      router.replace("/auth");
+    if (!userId) {
+      router.push("/auth");
       return;
     }
-    setEmail(signedInEmail);
 
-    const savedBoard = localStorage.getItem(`board_${signedInEmail}`);
-    if (savedBoard) {
-      const data = JSON.parse(savedBoard);
-      setColumns(data.columns || []);
-      setTasks(data.tasks || []);
-    }
-    setMounted(true);
-  }, [router]);
-
-  // ===== Save board
-  const saveBoard = (updatedColumns: ColumnType[], updatedTasks: Task[]) => {
-    if (!email) return;
-    localStorage.setItem(
-      `board_${email}`,
-      JSON.stringify({ columns: updatedColumns, tasks: updatedTasks })
-    );
-  };
-
-  // ===== Drag & Drop
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (!over) return;
-
-    // Column drag
-    if (columns.some((c) => c.id === active.id)) {
-      const oldIndex = columns.findIndex((c) => c.id === active.id);
-      const newIndex = columns.findIndex((c) => c.id === over.id);
-      if (oldIndex !== newIndex) {
-        const newColumns = arrayMove(columns, oldIndex, newIndex);
-        setColumns(newColumns);
-        saveBoard(newColumns, tasks);
+    const fetchBoards = async () => {
+      setLoading(true);
+      try {
+        const query = `
+          query GetBoards($userId: uuid!) {
+            boards(where: { user: { _eq: $userId } }) {
+              id
+              title
+              color
+              columns {
+                id
+                title
+                color
+                tasks {
+                  id
+                  content
+                  color
+                }
+              }
+            }
+          }
+        `;
+        const response = await nhost.graphql.request(query, { userId });
+        if (response.error) throw response.error;
+        setBoards(response.data?.boards || []);
+      } catch (err) {
+        console.error("Error fetching board:", err);
+        setBoards([]);
+      } finally {
+        setLoading(false);
       }
-      return;
-    }
-
-    // Task drag
-    const activeTask = tasks.find((t) => t.id === active.id);
-    if (!activeTask) return;
-
-    const overTask = tasks.find((t) => t.id === over.id);
-    if (overTask) {
-      const updatedTasks = tasks.map((t) =>
-        t.id === active.id ? { ...t, column: overTask.column } : t
-      );
-      const oldIndex = updatedTasks.findIndex((t) => t.id === active.id);
-      const newIndex = updatedTasks.findIndex((t) => t.id === over.id);
-      const newTasks = arrayMove(updatedTasks, oldIndex, newIndex);
-      setTasks(newTasks);
-      saveBoard(columns, newTasks);
-      return;
-    }
-
-    const overColumn = columns.find((c) => c.id === over.id);
-    if (overColumn) {
-      const newTasks = tasks.map((t) =>
-        t.id === active.id ? { ...t, column: overColumn.id } : t
-      );
-      setTasks(newTasks);
-      saveBoard(columns, newTasks);
-    }
-  }
-
-  // ===== Cards
-  const handleAddCard = (columnId: string) => {
-    if (!email) return;
-    const newTask: Task = {
-      id: Date.now().toString(),
-      content: "",
-      column: columnId,
-      color: "#ffffff",
-      user: email,
     };
-    const updatedTasks = [...tasks, newTask];
-    setTasks(updatedTasks);
-    saveBoard(columns, updatedTasks);
-  };
 
-  const handleDeleteCard = (taskId: string) => {
-    const updatedTasks = tasks.filter((t) => t.id !== taskId);
-    setTasks(updatedTasks);
-    saveBoard(columns, updatedTasks);
-  };
+    fetchBoards();
+  }, [userId, router, nhost]);
 
-  const handleUpdateCard = (taskId: string, content: string, color?: string) => {
-    const updatedTasks = tasks.map((t) =>
-      t.id === taskId ? { ...t, content, color: color ?? t.color } : t
-    );
-    setTasks(updatedTasks);
-    saveBoard(columns, updatedTasks);
-  };
-
-  // ===== Columns
-  const handleAddColumn = () => {
-    if (!email) return;
-    const newTitle = prompt("Enter column name");
-    if (!newTitle) return;
-    const newColor = prompt("Pick column color (hex)", "#888888") || "#888888";
-    const newColumn: ColumnType = { id: Date.now().toString(), title: newTitle, color: newColor };
-    const updatedColumns = [...columns, newColumn];
-    setColumns(updatedColumns);
-    saveBoard(updatedColumns, tasks);
-  };
-
-  const handleDeleteColumn = (columnId: string) => {
-    const updatedColumns = columns.filter((c) => c.id !== columnId);
-    const updatedTasks = tasks.filter((t) => t.column !== columnId);
-    setColumns(updatedColumns);
-    setTasks(updatedTasks);
-    saveBoard(updatedColumns, updatedTasks);
-  };
-
-  const handleUpdateColumn = (columnId: string, newTitle: string, newColor: string) => {
-    const updatedColumns = columns.map((c) =>
-      c.id === columnId ? { ...c, title: newTitle, color: newColor } : c
-    );
-    setColumns(updatedColumns);
-    saveBoard(updatedColumns, tasks);
-  };
-
-  const handleSignOut = () => {
-    localStorage.removeItem("signedIn");
-    router.push("/auth");
-  };
-
-  if (!mounted) return null;
+  if (loading) return <div className="p-4">Loading boards...</div>;
 
   return (
-    <div className="bg-gray-900 text-gray-100 min-h-screen">
-      <header className="h-16 bg-gray-800 flex items-center justify-between px-8 border-b border-gray-700 shadow-sm">
-        <h1 className="text-xl font-semibold text-white">
-          Cupcakes Factory <span className="ml-2 font-normal">Kanban</span>
-        </h1>
-        <button
-          onClick={handleSignOut}
-          className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-md"
+    <div className="p-4 flex flex-col gap-6">
+      {boards.map((board: any) => (
+        <div
+          key={board.id}
+          className="border rounded-lg p-4"
+          style={{ backgroundColor: board.color }}
         >
-          Sign Out
-        </button>
-      </header>
-
-      <div className="flex">
-        <aside className="w-64 bg-gray-800 min-h-screen p-6 border-r border-gray-700 space-y-6">
-          {/* Example Dropdowns */}
-          <div>
-            <p className="text-white text-sm mb-2">Kanban Column</p>
-            <select className="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600">
-              <option>Delivered</option>
-              <option>In Progress</option>
-              {columns.map((c) => (
-                <option key={c.id} value={c.id}>{c.title}</option>
-              ))}
-            </select>
+          <h2 className="text-xl font-bold mb-4">{board.title}</h2>
+          <div className="flex gap-4 overflow-x-auto">
+            {board.columns.map((column: any) => (
+              <Column key={column.id} column={column} />
+            ))}
           </div>
-
-          <div>
-            <p className="text-white text-sm mb-2">Assignee Column</p>
-            <select className="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600">
-              <option>Person</option>
-              <option>Another Person</option>
-            </select>
-          </div>
-
-          <div>
-            <button onClick={handleAddColumn} className="bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded w-full">
-              + Add Column
-            </button>
-            <select
-              onChange={(e) => {
-                if (e.target.value) handleDeleteColumn(e.target.value);
-                e.target.value = "";
-              }}
-              className="bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded w-full mt-2"
-              defaultValue=""
-            >
-              <option value="" disabled>- Delete Column</option>
-              {columns.map((c) => (
-                <option key={c.id} value={c.id}>{c.title}</option>
-              ))}
-            </select>
-          </div>
-        </aside>
-
-        <main className="flex-1 p-6 overflow-x-auto h-[calc(100vh-64px)]">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={columns.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
-              <div className="flex gap-6 items-start">
-                {columns.map((column) => (
-                  <Column
-                    key={column.id}
-                    id={column.id}
-                    title={column.title}
-                    color={column.color}
-                    tasks={tasks.filter((t) => t.column === column.id)}
-                    onAddCard={handleAddCard}
-                    onDeleteCard={handleDeleteCard}
-                    onUpdateCard={handleUpdateCard}
-                    onUpdateColumn={handleUpdateColumn}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        </main>
-      </div>
+        </div>
+      ))}
     </div>
   );
 }

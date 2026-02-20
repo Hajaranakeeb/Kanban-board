@@ -26,6 +26,9 @@ importers:
       '@nhost/nhost-js':
         specifier: ^4.5.0
         version: 4.5.0
+      '@nhost/react':
+        specifier: ^3.11.2
+        version: 3.11.2(@types/react@19.2.14)(graphql@16.12.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@nhost/react-apollo':
         specifier: ^18.0.2
         version: 18.0.2(@apollo/client@4.1.5(graphql-ws@6.0.7(graphql@16.12.0)(ws@8.19.0))(graphql@16.12.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(rxjs@7.8.2))(@nhost/nhost-js@4.5.0)(@nhost/react@3.11.2(@types/react@19.2.14)(graphql@16.12.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(graphql@16.12.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)

@@ -2,60 +2,42 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-interface User {
-  email: string;
-  password: string;
-}
+import { useNhostClient, useUserId } from "@nhost/nextjs";
 
 export default function AuthPage() {
   const router = useRouter();
+  const nhost = useNhostClient();
+  const userId = useUserId();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // redirect if already signed in
+  if (userId) router.push("/board");
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const normalizedEmail = email.trim().toLowerCase();
+    setMessage("");
 
-    // Get users from localStorage
-    const users: User[] = JSON.parse(localStorage.getItem("users") || "[]");
-
-    if (isSignUp) {
-      // SIGN UP
-      if (users.find((u) => u.email === normalizedEmail)) {
-        setMessage("Account already exists. Please sign in.");
-        return;
+    try {
+      if (isSignUp) {
+        const { error } = await nhost.auth.signUp({ email, password });
+        if (error) {
+          setMessage(error.message);
+          return;
+        }
+      } else {
+        const { error } = await nhost.auth.signIn({ email, password });
+        if (error) {
+          setMessage(error.message);
+          return;
+        }
       }
-
-      const newUser = { email: normalizedEmail, password };
-      users.push(newUser);
-      localStorage.setItem("users", JSON.stringify(users));
-      localStorage.setItem("signedIn", normalizedEmail);
-
-      // Initialize empty board for this user
-      localStorage.setItem(
-        `board_${normalizedEmail}`,
-        JSON.stringify({ columns: [], tasks: [] })
-      );
 
       router.push("/board");
-    } else {
-      // SIGN IN
-      const user = users.find((u) => u.email === normalizedEmail);
-      if (!user) {
-        setMessage("No account found for this email.");
-        return;
-      }
-
-      if (user.password !== password) {
-        setMessage("Wrong password.");
-        return;
-      }
-
-      localStorage.setItem("signedIn", normalizedEmail);
-      router.push("/board");
+    } catch (err: any) {
+      setMessage(err.message || "Unexpected error");
     }
   };
 
