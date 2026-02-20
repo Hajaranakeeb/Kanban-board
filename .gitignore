@@ -27,3 +27,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# Ignore backend folder completely
+backend/
+backend/node_modules/
+backend/package.json
+backend/package-lock.json
+backend/pnpm-lock.yaml
+backend/server.js
