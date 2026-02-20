@@ -75,6 +75,9 @@ importers:
       eslint-config-next:
         specifier: 16.1.6
         version: 16.1.6(@typescript-eslint/parser@8.56.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
+      nhost:
+        specifier: ^0.1.11
+        version: 0.1.11
       tailwindcss:
         specifier: ^4
         version: 4.2.0
@@ -2834,6 +2837,9 @@ packages:
         optional: true
       sass:
         optional: true
+
+  nhost@0.1.11:
+    resolution: {integrity: sha512-gxINYpXtrrk/RsOluiu5+Gwoon0C7AXYqBZQP6AsT2eDAI4ceeick59Sy7cVoEbRuw8ftqibX1fk3tKNtBukjA==}
 
   no-case@3.0.4:
     resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
@@ -6805,6 +6811,8 @@ snapshots:
     transitivePeerDependencies:
       - '@babel/core'
       - babel-plugin-macros
+
+  nhost@0.1.11: {}
 
   no-case@3.0.4:
     dependencies:
