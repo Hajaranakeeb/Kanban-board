@@ -14,6 +14,7 @@ import {
   SortableContext,
   arrayMove,
   horizontalListSortingStrategy,
+  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 
 import Column from "../components/Column";
@@ -57,7 +58,7 @@ export default function BoardPage() {
   };
 
   // ===== Drag & Drop
-  function handleDragEnd(event: DragEndEvent) {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
 
@@ -100,9 +101,9 @@ export default function BoardPage() {
       setTasks(newTasks);
       saveBoard(columns, newTasks);
     }
-  }
+  };
 
-  // ===== Cards
+  // ===== Card handlers
   const handleAddCard = (columnId: string) => {
     if (!email) return;
     const newTask: Task = {
@@ -131,7 +132,7 @@ export default function BoardPage() {
     saveBoard(columns, updatedTasks);
   };
 
-  // ===== Columns
+  // ===== Column handlers
   const handleAddColumn = () => {
     if (!email) return;
     const newTitle = prompt("Enter column name");
@@ -159,6 +160,7 @@ export default function BoardPage() {
     saveBoard(updatedColumns, tasks);
   };
 
+  // ===== Sign out
   const handleSignOut = () => {
     localStorage.removeItem("signedIn");
     router.push("/auth");
@@ -192,14 +194,6 @@ export default function BoardPage() {
                   {c.title}
                 </option>
               ))}
-            </select>
-          </div>
-
-          <div>
-            <p className="text-white text-sm mb-2">Assignee Column</p>
-            <select className="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600">
-              <option>Person</option>
-              <option>Another Person</option>
             </select>
           </div>
 
@@ -249,7 +243,7 @@ export default function BoardPage() {
                     color={column.color}
                     tasks={tasks.filter((t) => t.column === column.id)}
                     onAddCard={handleAddCard}
-                    onDeleteCard={handleDeleteCard}
+                    onDeleteCard={handleDeleteCard} // ✅ signature fixed
                     onUpdateCard={handleUpdateCard}
                     onUpdateColumn={handleUpdateColumn}
                   />
