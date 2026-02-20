@@ -24,14 +24,12 @@ export default function BoardPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
-
   const [columns, setColumns] = useState<ColumnType[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
 
   const sensors = useSensors(useSensor(PointerSensor));
-  const backendURL = "http://localhost:4000";
 
-  // ===== Load board from backend
+  // ===== Load board from localStorage
   useEffect(() => {
     const signedInEmail = localStorage.getItem("signedIn");
     if (!signedInEmail) {
@@ -40,28 +38,22 @@ export default function BoardPage() {
     }
     setEmail(signedInEmail);
 
-    fetch(`${backendURL}/board?user=${signedInEmail}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setColumns(data.columns || []);
-        setTasks(data.tasks || []);
-      })
-      .catch(() => {
-        setColumns([]);
-        setTasks([]);
-      });
-
+    const savedBoard = localStorage.getItem(`board_${signedInEmail}`);
+    if (savedBoard) {
+      const data = JSON.parse(savedBoard);
+      setColumns(data.columns || []);
+      setTasks(data.tasks || []);
+    }
     setMounted(true);
   }, [router]);
 
-  // ===== Helper functions to sync backend
-  const saveBoard = async (updatedColumns: ColumnType[], updatedTasks: Task[]) => {
+  // ===== Save board
+  const saveBoard = (updatedColumns: ColumnType[], updatedTasks: Task[]) => {
     if (!email) return;
-    await fetch(`${backendURL}/board`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user: email, columns: updatedColumns, tasks: updatedTasks }),
-    });
+    localStorage.setItem(
+      `board_${email}`,
+      JSON.stringify({ columns: updatedColumns, tasks: updatedTasks })
+    );
   };
 
   // ===== Drag & Drop
@@ -69,6 +61,7 @@ export default function BoardPage() {
     const { active, over } = event;
     if (!over) return;
 
+    // Column drag
     if (columns.some((c) => c.id === active.id)) {
       const oldIndex = columns.findIndex((c) => c.id === active.id);
       const newIndex = columns.findIndex((c) => c.id === over.id);
@@ -80,11 +73,13 @@ export default function BoardPage() {
       return;
     }
 
+    // Task drag
     const activeTask = tasks.find((t) => t.id === active.id);
-    const overTask = tasks.find((t) => t.id === over.id);
     if (!activeTask) return;
 
+    const overTask = tasks.find((t) => t.id === over.id);
     if (overTask) {
+      // Move task within same column or to a different task's column
       const updatedTasks = tasks.map((t) =>
         t.id === active.id ? { ...t, column: overTask.column } : t
       );
@@ -96,6 +91,7 @@ export default function BoardPage() {
       return;
     }
 
+    // Dragged over empty column
     const overColumn = columns.find((c) => c.id === over.id);
     if (overColumn) {
       const newTasks = tasks.map((t) =>
@@ -107,7 +103,7 @@ export default function BoardPage() {
   }
 
   // ===== Cards
-  async function handleAddCard(columnId: string) {
+  const handleAddCard = (columnId: string) => {
     if (!email) return;
     const newTask: Task = {
       id: Date.now().toString(),
@@ -118,61 +114,58 @@ export default function BoardPage() {
     };
     const updatedTasks = [...tasks, newTask];
     setTasks(updatedTasks);
-    await saveBoard(columns, updatedTasks);
-  }
+    saveBoard(columns, updatedTasks);
+  };
 
-  async function handleDeleteCard(columnId: string, taskId: string) {
+  const handleDeleteCard = (taskId: string) => {
     const updatedTasks = tasks.filter((t) => t.id !== taskId);
     setTasks(updatedTasks);
-    await saveBoard(columns, updatedTasks);
-  }
+    saveBoard(columns, updatedTasks);
+  };
 
-  async function handleUpdateCard(columnId: string, taskId: string, content: string, color?: string) {
+  const handleUpdateCard = (taskId: string, content: string, color?: string) => {
     const updatedTasks = tasks.map((t) =>
       t.id === taskId ? { ...t, content, color: color ?? t.color } : t
     );
     setTasks(updatedTasks);
-    await saveBoard(columns, updatedTasks);
-  }
+    saveBoard(columns, updatedTasks);
+  };
 
   // ===== Columns
-  async function handleAddColumn() {
+  const handleAddColumn = () => {
     if (!email) return;
-    const newId = Date.now().toString();
     const newTitle = prompt("Enter column name");
     if (!newTitle) return;
     const newColor = prompt("Pick column color (hex)", "#888888") || "#888888";
-
-    const newColumn: ColumnType = { id: newId, title: newTitle, color: newColor };
+    const newColumn: ColumnType = { id: Date.now().toString(), title: newTitle, color: newColor };
     const updatedColumns = [...columns, newColumn];
     setColumns(updatedColumns);
-    await saveBoard(updatedColumns, tasks);
-  }
+    saveBoard(updatedColumns, tasks);
+  };
 
-  async function handleDeleteColumn(columnId: string) {
+  const handleDeleteColumn = (columnId: string) => {
     const updatedColumns = columns.filter((c) => c.id !== columnId);
     const updatedTasks = tasks.filter((t) => t.column !== columnId);
     setColumns(updatedColumns);
     setTasks(updatedTasks);
-    await saveBoard(updatedColumns, updatedTasks);
-  }
+    saveBoard(updatedColumns, updatedTasks);
+  };
 
-  async function handleUpdateColumn(columnId: string, newTitle: string, newColor: string) {
+  const handleUpdateColumn = (columnId: string, newTitle: string, newColor: string) => {
     const updatedColumns = columns.map((c) =>
       c.id === columnId ? { ...c, title: newTitle, color: newColor } : c
     );
     setColumns(updatedColumns);
-    await saveBoard(updatedColumns, tasks);
-  }
+    saveBoard(updatedColumns, tasks);
+  };
 
-  function handleSignOut() {
+  const handleSignOut = () => {
     localStorage.removeItem("signedIn");
     router.push("/auth");
-  }
+  };
 
   if (!mounted) return null;
 
-  // ===== Render layout (your original layout)
   return (
     <div className="bg-gray-900 text-gray-100 min-h-screen">
       <header className="h-16 bg-gray-800 flex items-center justify-between px-8 border-b border-gray-700 shadow-sm">
@@ -189,52 +182,54 @@ export default function BoardPage() {
 
       <div className="flex">
         <aside className="w-64 bg-gray-800 min-h-screen p-6 border-r border-gray-700 space-y-6">
-  {/* --- Restored selects --- */}
-  <div>
-    <p className="text-white text-sm mb-2">Kanban Column</p>
-    <select className="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600">
-      <option>Delivered</option>
-      <option>In Progress</option>
-      {columns.map((c) => (
-        <option key={c.id} value={c.id}>
-          {c.title}
-        </option>
-      ))}
-    </select>
-  </div>
+          <div>
+            <p className="text-white text-sm mb-2">Kanban Column</p>
+            <select className="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600">
+              <option>Delivered</option>
+              <option>In Progress</option>
+              {columns.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+          </div>
 
-  <div>
-    <p className="text-white text-sm mb-2">Assignee Column</p>
-    <select className="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600">
-      <option>Person</option>
-      <option>Another Person</option>
-    </select>
-  </div>
+          <div>
+            <p className="text-white text-sm mb-2">Assignee Column</p>
+            <select className="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600">
+              <option>Person</option>
+              <option>Another Person</option>
+            </select>
+          </div>
 
-  {/* --- Add/Delete buttons --- */}
-  <div className="flex flex-col gap-2 mt-4">
-    <button
-      onClick={handleAddColumn}
-      className="bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded"
-    >
-      + Add Column
-    </button>
-    <select
-      onChange={(e) => handleDeleteColumn(e.target.value)}
-      className="bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded w-full"
-      defaultValue=""
-    >
-      <option value="" disabled>
-        - Delete Column
-      </option>
-      {columns.map((c) => (
-        <option key={c.id} value={c.id}>
-          {c.title}
-        </option>
-      ))}
-    </select>
-  </div>
-</aside>
+          <div className="flex flex-col gap-2 mt-4">
+            <button
+              onClick={handleAddColumn}
+              className="bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded"
+            >
+              + Add Column
+            </button>
+            <select
+              onChange={(e) => {
+                handleDeleteColumn(e.target.value);
+                e.target.value = "";
+              }}
+              className="bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded w-full"
+              defaultValue=""
+            >
+              <option value="" disabled>
+                - Delete Column
+              </option>
+              {columns.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        </aside>
+
         <main className="flex-1 p-6 overflow-x-auto h-[calc(100vh-64px)]">
           <DndContext
             sensors={sensors}

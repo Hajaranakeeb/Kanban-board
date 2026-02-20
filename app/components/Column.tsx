@@ -15,21 +15,29 @@ interface ColumnProps {
   tasks: Task[];
   color: string;
   onAddCard: (columnId: string) => void;
-  onDeleteCard: (columnId: string, taskId: string) => void;
-  onUpdateCard: (columnId: string, taskId: string, content: string, color?: string) => void;
-  onUpdateColumn: (columnId: string, newTitle: string, newColor: string) => void;
+  onDeleteCard: (taskId: string) => void; // ✅ FIXED
+  onUpdateCard: (
+    taskId: string,
+    content: string,
+    color?: string
+  ) => void;
+  onUpdateColumn: (
+    columnId: string,
+    newTitle: string,
+    newColor: string
+  ) => void;
 }
 
 function TaskItem({
   task,
-  columnId,
   onUpdateCard,
-  onDeleteCard,
 }: {
   task: Task;
-  columnId: string;
-  onUpdateCard: (columnId: string, taskId: string, content: string, color?: string) => void;
-  onDeleteCard: (columnId: string, taskId: string) => void;
+  onUpdateCard: (
+    taskId: string,
+    content: string,
+    color?: string
+  ) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: task.id });
@@ -39,7 +47,7 @@ function TaskItem({
 
   const handleBlur = () => {
     setEditing(false);
-    onUpdateCard(columnId, task.id, value, task.color);
+    onUpdateCard(task.id, value);
   };
 
   return (
@@ -51,9 +59,9 @@ function TaskItem({
         transform: CSS.Transform.toString(transform),
         transition,
         backgroundColor: "#000000",
-        color: "white",
+        color: "#ffffff",
       }}
-      className="p-3 rounded-md shadow cursor-pointer"
+      className="p-3 rounded-md shadow"
     >
       {editing ? (
         <textarea
@@ -61,10 +69,15 @@ function TaskItem({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onBlur={handleBlur}
-          className="w-full p-2 rounded resize-none bg-black text-white"
+          className="w-full p-2 rounded resize-none bg-black text-white border border-gray-700 focus:outline-none"
         />
       ) : (
-        <p onClick={() => setEditing(true)}>{task.content || "New Card"}</p>
+        <p
+          onClick={() => setEditing(true)}
+          className="text-white cursor-text"
+        >
+          {task.content || "New Card"}
+        </p>
       )}
     </div>
   );
@@ -80,7 +93,9 @@ export default function Column({
   onUpdateCard,
   onUpdateColumn,
 }: ColumnProps) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id });
+
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
   const [colorValue, setColorValue] = useState(color);
@@ -103,11 +118,11 @@ export default function Column({
         transform: CSS.Transform.toString(transform),
         transition,
         backgroundColor: colorValue,
-        color: "white",
+        color: "#fff",
       }}
       className="w-64 rounded-lg flex flex-col"
     >
-      {/* COLUMN HEADER */}
+      {/* HEADER */}
       <div className="p-4 cursor-grab" {...attributes} {...listeners}>
         {editingTitle ? (
           <>
@@ -126,26 +141,30 @@ export default function Column({
             />
           </>
         ) : (
-          <h2 className="font-bold mb-2" onClick={() => setEditingTitle(true)}>
+          <h2
+            className="font-bold mb-2"
+            onClick={() => setEditingTitle(true)}
+          >
             {titleValue}
           </h2>
         )}
       </div>
 
       {/* CARDS */}
-      <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext
+        items={tasks.map((t) => t.id)}
+        strategy={verticalListSortingStrategy}
+      >
         <div className="flex flex-col gap-3 p-4">
           {tasks.map((task) => (
             <TaskItem
               key={task.id}
               task={task}
-              columnId={id}
               onUpdateCard={onUpdateCard}
-              onDeleteCard={onDeleteCard}
             />
           ))}
 
-          {/* DELETE CARD MENU */}
+          {/* DELETE MENU */}
           {tasks.length > 0 && (
             <div className="flex flex-col gap-1">
               <button
@@ -159,9 +178,9 @@ export default function Column({
                 tasks.map((task) => (
                   <button
                     key={task.id}
-                    className="text-white/80 hover:text-white cursor-pointer text-sm bg-gray-700 px-2 py-1 rounded text-left"
+                    className="text-white hover:text-red-400 cursor-pointer text-sm bg-gray-800 px-2 py-1 rounded text-left"
                     onClick={() => {
-                      onDeleteCard(id, task.id);
+                      onDeleteCard(task.id); // ✅ FIXED
                       setShowDeleteMenu(false);
                     }}
                   >
@@ -171,7 +190,7 @@ export default function Column({
             </div>
           )}
 
-          {/* ADD NEW CARD BUTTON */}
+          {/* ADD CARD */}
           <div
             onClick={() => onAddCard(id)}
             className="text-white/80 hover:text-white cursor-pointer text-sm bg-gray-700 px-3 py-2 rounded text-center mt-1"

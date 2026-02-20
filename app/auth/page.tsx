@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+interface User {
+  email: string;
+  password: string;
+}
+
 export default function AuthPage() {
   const router = useRouter();
   const [isSignUp, setIsSignUp] = useState(false);
@@ -10,60 +15,47 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
 
-  const backendURL = "http://localhost:4000"; // your backend URL
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const normalizedEmail = email.trim().toLowerCase();
 
-    try {
-      if (isSignUp) {
-        // ===== SIGN UP =====
-        const res = await fetch(`${backendURL}/users`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: normalizedEmail, password }),
-        });
+    // Get users from localStorage
+    const users: User[] = JSON.parse(localStorage.getItem("users") || "[]");
 
-        const data = await res.json();
-
-        if (data.exists) {
-          setMessage("Account already exists. Please sign in.");
-          return;
-        }
-
-        // Initialize empty board for this user
-        await fetch(`${backendURL}/board`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user: normalizedEmail, columns: [], tasks: [] }),
-        });
-
-        localStorage.setItem("signedIn", normalizedEmail);
-        router.push("/board");
-
-      } else {
-        // ===== SIGN IN =====
-        const res = await fetch(`${backendURL}/users?email=${normalizedEmail}`);
-        const data = await res.json();
-        const user = data.user;
-
-        if (!user) {
-          setMessage("No account found for this email.");
-          return;
-        }
-
-        if (user.password !== password) {
-          setMessage("Wrong password.");
-          return;
-        }
-
-        localStorage.setItem("signedIn", normalizedEmail);
-        router.push("/board");
+    if (isSignUp) {
+      // SIGN UP
+      if (users.find((u) => u.email === normalizedEmail)) {
+        setMessage("Account already exists. Please sign in.");
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      setMessage("Server error. Try again.");
+
+      const newUser = { email: normalizedEmail, password };
+      users.push(newUser);
+      localStorage.setItem("users", JSON.stringify(users));
+      localStorage.setItem("signedIn", normalizedEmail);
+
+      // Initialize empty board for this user
+      localStorage.setItem(
+        `board_${normalizedEmail}`,
+        JSON.stringify({ columns: [], tasks: [] })
+      );
+
+      router.push("/board");
+    } else {
+      // SIGN IN
+      const user = users.find((u) => u.email === normalizedEmail);
+      if (!user) {
+        setMessage("No account found for this email.");
+        return;
+      }
+
+      if (user.password !== password) {
+        setMessage("Wrong password.");
+        return;
+      }
+
+      localStorage.setItem("signedIn", normalizedEmail);
+      router.push("/board");
     }
   };
 
