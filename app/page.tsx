@@ -1,76 +1,79 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function AuthPage() {
+export default function AppPage() {
   const router = useRouter();
   const [isSignUp, setIsSignUp] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const signedIn = localStorage.getItem("signedIn");
-    if (signedIn) router.replace("/board"); // redirect if already signed in
-    setMounted(true);
-  }, [router]);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!email || !password) {
+      setMessage("Please fill in all fields.");
+      return;
+    }
+
+    // Example: store signed-in status
     localStorage.setItem("signedIn", "true");
+
     router.push("/board");
   };
 
-  if (!mounted) return null;
-
   return (
-    <div className="flex min-h-screen bg-sky-300 text-black">
-      {/* Sidebar */}
-      <aside className="w-64 bg-yellow-200 p-6 flex flex-col items-center justify-center border-r border-black">
-        <div className="p-4 bg-pink-100 rounded shadow text-center font-semibold text-black">
-          🌸 Welcome to your Planner 🌸
-        </div>
-      </aside>
+    <div className="flex items-center justify-center min-h-screen bg-[#8cadd3] text-white">
+      <div className="bg-[#f0c7e3] p-8 rounded-xl w-96">
+        <h2 className="text-2xl mb-6 text-center">
+          {isSignUp ? "Sign Up" : "Sign In"}
+        </h2>
 
-      {/* Main content */}
-      <main className="flex-1 flex items-center justify-center">
-        <div className="bg-pink-300 p-8 rounded-xl w-96 shadow-lg">
-          <h2 className="text-2xl mb-6 text-center font-semibold text-black">
-            {isSignUp ? "Sign Up" : "Sign In"}
-          </h2>
+        {message && (
+          <p className="text-red-500 text-sm mb-2 text-center">{message}</p>
+        )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <input
-              type="email"
-              placeholder="Email"
-              className="p-2 rounded border border-black outline-none"
-              required
-            />
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <input
+            type="email"
+            placeholder="Email"
+            className="p-2 rounded bg-[#cf9bcc] outline-none"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
 
-            <input
-              type="password"
-              placeholder="Password"
-              className="p-2 rounded border border-black outline-none"
-              required
-            />
+          <input
+            type="password"
+            placeholder="Password"
+            className="p-2 rounded bg-[#c788c3] outline-none"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
-            <button
-              type="submit"
-              className="bg-sky-200 hover:bg-sky-300 p-2 rounded-lg border border-black text-black"
-            >
-              {isSignUp ? "Create Account" : "Sign In"}
-            </button>
-          </form>
-
-          <p
-            className="mt-4 text-center text-sm cursor-pointer hover:underline text-black"
-            onClick={() => setIsSignUp(!isSignUp)}
+          <button
+            type="submit"
+            className="bg-[#f3ebbe] hover:bg-[#296ea6] p-2 rounded-lg text-black"
           >
-            {isSignUp
-              ? "Already have an account? Sign In"
-              : "Don't have an account? Sign Up"}
-          </p>
-        </div>
-      </main>
+            {isSignUp ? "Create Account" : "Sign In"}
+          </button>
+        </form>
+
+        <p
+          className="mt-4 text-center text-sm cursor-pointer hover:underline"
+          onClick={() => {
+            setIsSignUp(!isSignUp);
+            setMessage("");
+          }}
+        >
+          {isSignUp
+            ? "Already have an account? Sign In"
+            : "Don't have an account? Sign Up"}
+        </p>
+      </div>
     </div>
   );
 }
