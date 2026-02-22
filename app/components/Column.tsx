@@ -153,7 +153,7 @@ export default function Column({
                 className="text-white/80 hover:text-white cursor-pointer text-sm bg-gray-700 px-3 py-2 rounded text-center"
                 onClick={() => setShowDeleteMenu((prev) => !prev)}
               >
-                Delete Card
+                Delete task
               </button>
 
               {showDeleteMenu &&
@@ -176,7 +176,7 @@ export default function Column({
             onClick={() => onAddCard(id)}
             className="text-white/80 hover:text-white cursor-pointer text-sm bg-gray-700 px-3 py-2 rounded text-center mt-1"
           >
-            + New Card
+            + New task
           </div>
         </div>
       </SortableContext>

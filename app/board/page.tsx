@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -27,9 +27,13 @@ export default function BoardPage() {
   const [columns, setColumns] = useState<ColumnType[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
 
+  const [newColumnTitle, setNewColumnTitle] = useState("");
+  const [newColumnColor, setNewColumnColor] = useState("");
+  const [showColumnForm, setShowColumnForm] = useState(false);
+
+  const formRef = useRef<HTMLDivElement | null>(null);
   const sensors = useSensors(useSensor(PointerSensor));
 
-  // ===== Load board from localStorage
   useEffect(() => {
     const signedInEmail = localStorage.getItem("signedIn");
     if (!signedInEmail) {
@@ -44,10 +48,28 @@ export default function BoardPage() {
       setColumns(data.columns || []);
       setTasks(data.tasks || []);
     }
+
     setMounted(true);
   }, [router]);
 
-  // ===== Save board
+  // Close form when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        showColumnForm &&
+        formRef.current &&
+        !formRef.current.contains(event.target as Node)
+      ) {
+        setShowColumnForm(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showColumnForm]);
+
   const saveBoard = (updatedColumns: ColumnType[], updatedTasks: Task[]) => {
     if (!email) return;
     localStorage.setItem(
@@ -56,15 +78,14 @@ export default function BoardPage() {
     );
   };
 
-  // ===== Drag & Drop
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over) return;
 
-    // Column drag
     if (columns.some((c) => c.id === active.id)) {
       const oldIndex = columns.findIndex((c) => c.id === active.id);
       const newIndex = columns.findIndex((c) => c.id === over.id);
+
       if (oldIndex !== newIndex) {
         const newColumns = arrayMove(columns, oldIndex, newIndex);
         setColumns(newColumns);
@@ -73,7 +94,6 @@ export default function BoardPage() {
       return;
     }
 
-    // Task drag
     const activeTask = tasks.find((t) => t.id === active.id);
     if (!activeTask) return;
 
@@ -82,8 +102,10 @@ export default function BoardPage() {
       const updatedTasks = tasks.map((t) =>
         t.id === active.id ? { ...t, column: overTask.column } : t
       );
+
       const oldIndex = updatedTasks.findIndex((t) => t.id === active.id);
       const newIndex = updatedTasks.findIndex((t) => t.id === over.id);
+
       const newTasks = arrayMove(updatedTasks, oldIndex, newIndex);
       setTasks(newTasks);
       saveBoard(columns, newTasks);
@@ -100,9 +122,9 @@ export default function BoardPage() {
     }
   }
 
-  // ===== Cards
   const handleAddCard = (columnId: string) => {
     if (!email) return;
+
     const newTask: Task = {
       id: Date.now().toString(),
       content: "",
@@ -110,6 +132,7 @@ export default function BoardPage() {
       color: "#ffffff",
       user: email,
     };
+
     const updatedTasks = [...tasks, newTask];
     setTasks(updatedTasks);
     saveBoard(columns, updatedTasks);
@@ -121,7 +144,11 @@ export default function BoardPage() {
     saveBoard(columns, updatedTasks);
   };
 
-  const handleUpdateCard = (taskId: string, content: string, color?: string) => {
+  const handleUpdateCard = (
+    taskId: string,
+    content: string,
+    color?: string
+  ) => {
     const updatedTasks = tasks.map((t) =>
       t.id === taskId ? { ...t, content, color: color ?? t.color } : t
     );
@@ -129,30 +156,45 @@ export default function BoardPage() {
     saveBoard(columns, updatedTasks);
   };
 
-  // ===== Columns
   const handleAddColumn = () => {
     if (!email) return;
-    const newTitle = prompt("Enter column name");
-    if (!newTitle) return;
-    const newColor = prompt("Pick column color (hex)", "#888888") || "#888888";
-    const newColumn: ColumnType = { id: Date.now().toString(), title: newTitle, color: newColor };
+    if (!newColumnTitle.trim() || !newColumnColor) return;
+
+    const newColumn: ColumnType = {
+      id: Date.now().toString(),
+      title: newColumnTitle,
+      color: newColumnColor,
+    };
+
     const updatedColumns = [...columns, newColumn];
     setColumns(updatedColumns);
     saveBoard(updatedColumns, tasks);
+
+    setNewColumnTitle("");
+    setNewColumnColor("");
+    setShowColumnForm(false);
   };
 
   const handleDeleteColumn = (columnId: string) => {
     const updatedColumns = columns.filter((c) => c.id !== columnId);
     const updatedTasks = tasks.filter((t) => t.column !== columnId);
+
     setColumns(updatedColumns);
     setTasks(updatedTasks);
     saveBoard(updatedColumns, updatedTasks);
   };
 
-  const handleUpdateColumn = (columnId: string, newTitle: string, newColor: string) => {
+  const handleUpdateColumn = (
+    columnId: string,
+    newTitle: string,
+    newColor: string
+  ) => {
     const updatedColumns = columns.map((c) =>
-      c.id === columnId ? { ...c, title: newTitle, color: newColor } : c
+      c.id === columnId
+        ? { ...c, title: newTitle, color: newColor }
+        : c
     );
+
     setColumns(updatedColumns);
     saveBoard(updatedColumns, tasks);
   };
@@ -165,64 +207,99 @@ export default function BoardPage() {
   if (!mounted) return null;
 
   return (
-    <div className="bg-gray-900 text-gray-100 min-h-screen">
-      <header className="h-16 bg-gray-800 flex items-center justify-between px-8 border-b border-gray-700 shadow-sm">
-        <h1 className="text-xl font-semibold text-white">
-          Cupcakes Factory <span className="ml-2 font-normal">Kanban</span>
+    <div className="bg-sky-300 text-black min-h-screen">
+
+      <header className="relative h-16 bg-pink-300 flex items-center justify-center px-8 border-b border-black shadow-sm">
+        <h1 className="text-xl font-semibold text-black">
+          To Do
         </h1>
+
         <button
           onClick={handleSignOut}
-          className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-md"
+          className="absolute right-8 bg-sky-200 hover:bg-sky-300 text-black px-4 py-2 rounded-md border border-black"
         >
           Sign Out
         </button>
       </header>
 
       <div className="flex">
-        <aside className="w-64 bg-gray-800 min-h-screen p-6 border-r border-gray-700 space-y-6">
-          {/* Example Dropdowns */}
-          <div>
-            <p className="text-white text-sm mb-2">Kanban Column</p>
-            <select className="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600">
-              <option>Delivered</option>
-              <option>In Progress</option>
-              {columns.map((c) => (
-                <option key={c.id} value={c.id}>{c.title}</option>
-              ))}
-            </select>
+
+        <aside className="w-64 bg-yellow-200 min-h-screen p-6 border-r border-black flex flex-col">
+
+          <div className="mb-6 p-3 bg-pink-100 rounded shadow text-center text-black font-semibold">
+            🌸 The perfect planner for the perfect schedule 🌸
           </div>
 
-          <div>
-            <p className="text-white text-sm mb-2">Assignee Column</p>
-            <select className="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600">
-              <option>Person</option>
-              <option>Another Person</option>
-            </select>
-          </div>
+          <button
+            onClick={() => setShowColumnForm(true)}
+            className="bg-pink-300 hover:bg-blue-300 text-black px-3 py-2 rounded w-full border border-black mb-6"
+          >
+            + Add Column
+          </button>
 
-          <div>
-            <button onClick={handleAddColumn} className="bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded w-full">
-              + Add Column
-            </button>
-            <select
-              onChange={(e) => {
-                if (e.target.value) handleDeleteColumn(e.target.value);
-                e.target.value = "";
-              }}
-              className="bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded w-full mt-2"
-              defaultValue=""
+          {showColumnForm && (
+            <div
+              ref={formRef}
+              className="mb-8 p-3 bg-white rounded border border-black shadow space-y-3"
             >
-              <option value="" disabled>- Delete Column</option>
-              {columns.map((c) => (
-                <option key={c.id} value={c.id}>{c.title}</option>
-              ))}
-            </select>
-          </div>
+              <div className="text-sm font-semibold">
+                Name your column
+              </div>
+
+              <input
+                type="text"
+                placeholder="Choose a name"
+                value={newColumnTitle}
+                onChange={(e) => setNewColumnTitle(e.target.value)}
+                className="w-full p-2 rounded border border-black"
+              />
+
+              <div className="text-sm font-semibold">
+                Color your column
+              </div>
+
+              <input
+                type="color"
+                value={newColumnColor || "#888888"}
+                onChange={(e) => setNewColumnColor(e.target.value)}
+                className="w-full h-10 rounded border border-black"
+              />
+
+              <button
+                onClick={handleAddColumn}
+                className="bg-sky-300 hover:bg-pink-300 px-3 py-2 rounded w-full border border-black"
+              >
+                Create Column
+              </button>
+            </div>
+          )}
+
+          <select
+            onChange={(e) => {
+              if (e.target.value) handleDeleteColumn(e.target.value);
+              e.target.value = "";
+            }}
+            className="bg-blue-300 hover:bg-pink-300 text-black px-3 py-2 rounded w-full border border-black mt-6"
+            defaultValue=""
+          >
+            <option value="" disabled>- Delete Column</option>
+            {columns.map((c) => (
+              <option key={c.id} value={c.id}>{c.title}</option>
+            ))}
+          </select>
+
         </aside>
 
         <main className="flex-1 p-6 overflow-x-auto h-[calc(100vh-64px)]">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={columns.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={columns.map((c) => c.id)}
+              strategy={horizontalListSortingStrategy}
+            >
               <div className="flex gap-6 items-start">
                 {columns.map((column) => (
                   <Column
@@ -241,6 +318,7 @@ export default function BoardPage() {
             </SortableContext>
           </DndContext>
         </main>
+
       </div>
     </div>
   );

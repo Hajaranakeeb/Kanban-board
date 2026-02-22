@@ -60,8 +60,8 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#1f2235] text-white">
-      <div className="bg-[#2a2d45] p-8 rounded-xl w-96">
+    <div className="flex items-center justify-center min-h-screen bg-[#8cadd3] text-white">
+      <div className="bg-[#f0c7e3] p-8 rounded-xl w-96">
         <h2 className="text-2xl mb-6 text-center">
           {isSignUp ? "Sign Up" : "Sign In"}
         </h2>
@@ -74,7 +74,7 @@ export default function AuthPage() {
           <input
             type="email"
             placeholder="Email"
-            className="p-2 rounded bg-[#3b3f5c] outline-none"
+            className="p-2 rounded bg-[#cf9bcc] outline-none"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -83,7 +83,7 @@ export default function AuthPage() {
           <input
             type="password"
             placeholder="Password"
-            className="p-2 rounded bg-[#3b3f5c] outline-none"
+            className="p-2 rounded bg-[#c788c3] outline-none"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -91,7 +91,7 @@ export default function AuthPage() {
 
           <button
             type="submit"
-            className="bg-[#4c5072] hover:bg-[#5d6290] p-2 rounded-lg"
+            className="bg-[#f3ebbe] hover:bg-[#296ea6] p-2 rounded-lg text-black"
           >
             {isSignUp ? "Create Account" : "Sign In"}
           </button>
